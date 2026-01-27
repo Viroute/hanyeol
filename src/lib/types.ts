@@ -66,4 +66,26 @@ export const PROFILES = {
       "따뜻함과 충분한 휴식으로 기반을 채우세요",
     color: "#B0BEC5", // 아이스 그레이
   },
+
+export const DEFAULT_PROFILE = {
+  nameKo: "기본형",
+  nameEn: "Default",
+  emoji: "🧭",
+  definition: "내 몸 타입을 좌표로 확인해보세요.",
+  mission: "오늘은 물부터 채우고, 속도를 한 단계 낮춰보세요.",
+  color: "#ffffff",
+};
+
+export function getProfile(typeCode?: string | null) {
+  const key = (typeCode || "").trim();
+
+  // PROFILES가 Record 형태일 때
+  const p = (PROFILES as any)?.[key];
+
+  // 없으면 HD 같은 기본키를 한 번 더 시도
+  const fallback = (PROFILES as any)?.["HD"] || (PROFILES as any)?.["DEFAULT"];
+
+  return p || fallback || DEFAULT_PROFILE;
+}
+
 } as const;
