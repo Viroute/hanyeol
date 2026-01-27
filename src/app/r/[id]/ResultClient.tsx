@@ -12,8 +12,13 @@ function extractUuidStrict(raw: string) {
   return m?.[0] ?? null;
 }
 
-function stripUrls(text: string) {
-  return (text || "").replace(/https?:\/\/\S+/gi, "").trim();
+function stripLinks(text: string) {
+  return (text || "")
+    // 1) https://... 제거
+    .replace(/https?:\/\/\S+/gi, "")
+    // 2) 스킴 없는 도메인도 제거 (hanyeol.vercel.app/....)
+    .replace(/\b[a-z0-9.-]+\.(?:vercel\.app|com|net|org)(?:\/\S*)?/gi, "")
+    .trim();
 }
 
 export default function ResultClient({
@@ -35,7 +40,7 @@ export default function ResultClient({
   }, [uuid]);
 
   // ✅ caption 안에 링크가 섞여 있으면 제거 (중복 방지)
-  const cleanCaption = useMemo(() => stripUrls(caption), [caption]);
+  const cleanCaption = useMemo(() => stripLinks(caption), [caption]);
 
   // ✅ 카톡에 붙여넣을 최종 텍스트 (링크 1번만)
   const message = useMemo(() => {
@@ -66,25 +71,29 @@ export default function ResultClient({
     await copy(message); // 캡션+링크 복사
   }
 
-  async function onShare() {
-    // ✅ Web Share API가 있으면: url 필드를 사용 (카톡 링크 인식 최적)
-    if (navigator.share && shareUrl) {
-      try {
-        await navigator.share({
-          title: "한열조습 좌표 테스트",
-          text: cleanCaption,
-          url: shareUrl,
-        });
-        return;
-      } catch {
-        // 사용자가 취소하거나 실패하면 폴백
-      }
-    }
-
-    // ✅ 폴백: 메시지 복사
-    await onCopyCaption();
-    alert("이 기기에서는 공유가 제한될 수 있어 메시지를 복사했어요. 카톡에 붙여넣기 해주세요.");
+async function onShare() {
+  if (!shareUrl) {
+    alert("공유 링크를 만들 수 없습니다. (id가 UUID가 아닙니다)");
+    return;
   }
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "한열조습 좌표 테스트",
+        text: cleanCaption || "내 결과 보기",
+        url: shareUrl, // ✅ 링크는 여기 한 군데만
+      });
+      return;
+    } catch {
+      // 취소/실패 시 폴백
+    }
+  }
+
+
+  await copy(shareUrl); // 폴백도 링크만 복사(가장 안전)
+  alert("이 환경에서는 공유가 제한되어 링크를 복사했어요. 카톡에 붙여넣기 해주세요.");
+}
 
   return (
     <section className="mt-5">
