@@ -1,126 +1,133 @@
 import { ImageResponse } from "next/og";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase";
 import { PROFILES } from "@/lib/types";
 
 export const runtime = "edge";
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
-export const size = { width: 1200, height: 630 };
+export const size = {
+  width: 1200,
+  height: 630,
+};
+
 export const contentType = "image/png";
 
-type OGProps = {
+type Props = {
   params: Promise<{ id: string }>;
 };
 
-function fmt(n: number) {
-  return `${n >= 0 ? "+" : ""}${n}`;
+function quadrantLabel(ch: number, dd: number) {
+  const heatCold = ch >= 0 ? "열" : "한";
+  const dampDry = dd >= 0 ? "습" : "조";
+  return `${heatCold}${dampDry}`;
 }
 
-export default async function OG({ params }: OGProps) {
-  // ⭐ Next 16 / next-og에서는 params가 Promise로 들어옴
+export default async function OpenGraphImage({ params }: Props) {
   const { id } = await params;
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-  // 환경변수 누락 방어
-  if (!url || !anon) {
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            width: "1200px",
-            height: "630px",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            padding: "80px",
-            backgroundColor: "black",
-            color: "white",
-          }}
-        >
-          <div style={{ display: "flex", fontSize: 44, fontWeight: 900 }}>
-            ❌ OG 환경변수 누락
-          </div>
-          <div style={{ display: "flex", marginTop: 18, fontSize: 26, opacity: 0.8 }}>
-            NEXT_PUBLIC_SUPABASE_URL 또는 NEXT_PUBLIC_SUPABASE_ANON_KEY가 없습니다.
-          </div>
-        </div>
-      ),
-      { ...size }
-    );
-  }
-
-  // Edge에서 확실히 동작하도록 여기서 직접 client 생성
-  const sb = createClient(url, anon, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
+  // 1) DB에서 결과 가져오기
   let data: any = null;
   let errMsg: string | null = null;
 
   try {
-    const { data: d, error } = await sb
-      .from("surveys")
-      .select("id, type_code, ch, dd")
-      .eq("id", id)
-      .maybeSingle(); // single 대신 maybeSingle
-
-    data = d;
-    errMsg = error ? error.message : null;
+    const sb = supabaseAdmin();
+    const res = await sb.from("surveys").select("*").eq("id", id).single();
+    data = res.data;
+    if (res.error) errMsg = res.error.message;
   } catch (e: any) {
-    errMsg = e?.message ?? String(e);
+    errMsg = e?.message ?? "unknown error";
   }
 
-  const typeCode = data?.type_code as string | undefined;
-  const p = typeCode ? PROFILES[typeCode as keyof typeof PROFILES] : null;
+  // 2) profile 결정
+  const typeCode = data?.type_code as keyof typeof PROFILES | undefined;
+  const p = typeCode ? PROFILES[typeCode] : undefined;
 
   const title = p?.nameKo ?? "한열조습 좌표 테스트";
   const emoji = p?.emoji ?? "🧭";
-  const tagline = p?.tagline ?? "내 몸 타입을 좌표로 확인해보세요.";
+  const definition = p?.definition ?? "내 몸 타입을 좌표로 확인해보세요.";
+  const mission = p?.mission ?? "오늘은 수분·휴식을 먼저 챙겨보세요.";
 
   const ch = typeof data?.ch === "number" ? data.ch : 0;
   const dd = typeof data?.dd === "number" ? data.dd : 0;
+  const label = quadrantLabel(ch, dd);
 
-
+  // OG는 Tailwind className을 직접 못 쓰고, style 객체를 써야 안정적
   return new ImageResponse(
     (
       <div
         style={{
-          width: "1200px",
-          height: "630px",
+          width: "100%",
+          height: "100%",
+          background: "#000",
+          color: "#fff",
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          padding: "80px",
-          backgroundColor: "black",
-          color: "white",
+          padding: 72,
+          gap: 24,
         }}
       >
-        <div style={{ display: "flex", fontSize: 28, opacity: 0.7 }}>
-          🧭 한열조습 좌표 테스트
+        {/* 상단 작은 라벨 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ fontSize: 22, opacity: 0.75 }}>🧭</div>
+          <div style={{ fontSize: 22, opacity: 0.75 }}>
+            한열조습 좌표 테스트
+          </div>
         </div>
 
-        <div style={{ display: "flex", marginTop: 24, fontSize: 72, fontWeight: 900 }}>
-          {emoji} {title}
+        {/* 메인 타이틀 */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 18,
+          }}
+        >
+          <div style={{ fontSize: 64 }}>{emoji}</div>
+          <div style={{ fontSize: 72, fontWeight: 800, letterSpacing: -1 }}>
+            {title}
+          </div>
         </div>
 
-        <div style={{ display: "flex", marginTop: 20, fontSize: 34, opacity: 0.9 }}>
-          “{tagline}”
+        {/* 정의 */}
+        <div
+          style={{
+            fontSize: 34,
+            opacity: 0.95,
+            lineHeight: 1.25,
+          }}
+        >
+          “{definition}”
         </div>
 
-        <div style={{ display: "flex", marginTop: 36, fontSize: 26, opacity: 0.75 }}>
-          좌표: CH {fmt(ch)} / DD {fmt(dd)}
+        {/* 좌표/요약 */}
+        <div style={{ marginTop: 8, fontSize: 28, opacity: 0.85 }}>
+          좌표: CH {ch >= 0 ? "+" : ""}
+          {ch} / DD {dd >= 0 ? "+" : ""}
+          {dd}
+          <span style={{ marginLeft: 18, opacity: 0.75 }}>요약: {label}</span>
         </div>
 
-        <div style={{ display: "flex", marginTop: 40, fontSize: 22, opacity: 0.6 }}>
-          링크를 열면 “오늘 할 일”까지 확인할 수 있어요.
+        {/* 오늘 미션 */}
+        <div
+          style={{
+            marginTop: 16,
+            padding: "22px 26px",
+            borderRadius: 18,
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            fontSize: 30,
+            lineHeight: 1.25,
+          }}
+        >
+          🎯 오늘 미션: {mission}
         </div>
 
-  
+        {/* 디버그(필요하면 유지, 싫으면 삭제 가능) */}
+        <div style={{ marginTop: 14, fontSize: 18, opacity: 0.45 }}>
+          id={id} {errMsg ? `err=${errMsg}` : "err=null"}
+        </div>
       </div>
     ),
-    { ...size }
+    size
   );
 }
