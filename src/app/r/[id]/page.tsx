@@ -43,9 +43,7 @@ export default async function ResultPage({ params }: PageProps) {
   const profile = PROFILES[data.type_code as keyof typeof PROFILES];
   const label = quadrantLabel(data.ch, data.dd);
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-  const shareUrl = `${baseUrl}/r/${data.id}`;
-  const caption = `나는 ${profile.emoji} ${profile.nameKo} (${profile.nameEn}). 오늘 미션: “${profile.mission}” #한열조습 #체질테스트`;
+  const caption = `한열조습 좌표 테스트 - 나는 ${profile.emoji} ${profile.nameKo} (${profile.nameEn}).\n오늘 미션: “${profile.mission}”\n#한열조습 #체질테스트`;
 
   return (
     <main className="min-h-screen bg-black text-white p-6 max-w-md mx-auto">
@@ -96,7 +94,7 @@ export default async function ResultPage({ params }: PageProps) {
       </section>
 
       {/* 공유 UX (캡션/링크 복사 + 공유하기) */}
-      <ResultClient shareUrl={shareUrl} caption={caption} />
+      <ResultClient id={data.id} caption={caption} />
 
       {/* 지도는 접기/펼치기 (기본 접힘) */}
       <details className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">

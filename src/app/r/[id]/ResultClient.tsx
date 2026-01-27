@@ -2,144 +2,102 @@
 
 import { useMemo, useState } from "react";
 
-type ResultClientProps = {
-  id: string; // UUID 또는 실수로 URL이 들어올 수도 있어 방어 처리함
-  title?: string; // 있으면 사용, 없으면 기본값
-  description?: string; // 있으면 사용, 없으면 기본값
-};
-
-function normalizeId(raw: string) {
-  // raw가 "https://hanyeol.vercel.app/r/UUID" 같은 형태여도 UUID만 추출
-  const uuid =
-    raw.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0];
-  return uuid ?? raw;
+function extractUuid(raw: string) {
+  const m = raw.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  return m?.[0] ?? raw;
 }
 
-function getOrigin() {
-  // 브라우저에서는 현재 origin이 가장 안전
-  if (typeof window !== "undefined") return window.location.origin;
-  // SSR fallback
-  return process.env.NEXT_PUBLIC_BASE_URL || "https://hanyeol.vercel.app";
-}
-
-declare global {
-  interface Window {
-    Kakao?: any;
-  }
-}
-
-async function loadKakaoSdk(): Promise<boolean> {
-  if (typeof window === "undefined") return false;
-  if (window.Kakao) return true;
-
-  return await new Promise((resolve) => {
-    const existing = document.querySelector('script[data-kakao-sdk="1"]');
-    if (existing) return resolve(true);
-
-    const s = document.createElement("script");
-    s.src = "https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js";
-    s.async = true;
-    s.setAttribute("data-kakao-sdk", "1");
-    s.onload = () => resolve(true);
-    s.onerror = () => resolve(false);
-    document.head.appendChild(s);
-  });
-}
-
-async function ensureKakaoReady(): Promise<boolean> {
-  const ok = await loadKakaoSdk();
-  if (!ok) return false;
-
-  const key = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
-  if (!key) return false;
-
-  try {
-    if (!window.Kakao.isInitialized()) {
-      window.Kakao.init(key);
-    }
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export default function ResultClient({ id, title, description }: ResultClientProps) {
+export default function ResultClient({
+  id,
+  caption,
+}: {
+  id: string;
+  caption: string;
+}) {
   const [copied, setCopied] = useState(false);
 
-  const resultId = useMemo(() => normalizeId(id), [id]);
-  const origin = useMemo(() => getOrigin(), []);
-  const shareUrl = useMemo(() => `${origin}/r/${resultId}`, [origin, resultId]);
-  const ogImageUrl = useMemo(() => `${origin}/r/${resultId}/opengraph-image`, [origin, resultId]);
+  // ✅ id는 혹시 URL이 들어와도 UUID만 뽑아서 안전하게
+  const uuid = useMemo(() => extractUuid(id), [id]);
 
-  const shareTitle = title || "한열조습 좌표 테스트";
-  const shareDesc = description || "내 몸 타입 결과를 확인해보세요.";
+  // ✅ 배포/로컬 모두 현재 origin이 가장 정확함
+  const baseUrl = useMemo(() => window.location.origin, []);
 
-  async function onCopyLink() {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-      alert("링크를 복사했어요. 카카오톡에 붙여넣기만 하면 됩니다.");
-    } catch {
-      // clipboard 실패 시 fallback
-      window.prompt("아래 링크를 복사하세요:", shareUrl);
-    }
+  // ✅ URL은 여기서 "딱 1번"만 생성
+  const shareUrl = useMemo(() => `${baseUrl}/r/${uuid}`, [baseUrl, uuid]);
+
+  // ✅ 카톡에 붙여넣을 최종 텍스트 (링크 1번만)
+  const message = useMemo(() => `${caption}\n${shareUrl}`, [caption, shareUrl]);
+
+  async function copy(text: string) {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
   }
 
-  async function onShareKakao() {
-    const ready = await ensureKakaoReady();
+  async function onCopyLink() {
+    await copy(shareUrl); // 링크만 복사
+  }
 
-    // SDK/키 준비 안되면 폴백: 링크 복사
-    if (!ready) {
-      await onCopyLink();
-      return;
+  async function onCopyCaption() {
+    await copy(message); // 캡션+링크 복사
+  }
+
+  async function onShare() {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "한열조습 좌표 테스트",
+          text: caption,
+          url: shareUrl, // ✅ 카톡 링크 인식 핵심
+        });
+        return;
+      } catch {
+        // 취소/미지원 시 폴백
+      }
     }
 
-    try {
-      window.Kakao!.Share.sendDefault({
-        objectType: "feed",
-        content: {
-          title: shareTitle,
-          description: shareDesc,
-          imageUrl: ogImageUrl, // ✅ 결과별 OG 이미지
-          link: {
-            mobileWebUrl: shareUrl,
-            webUrl: shareUrl,
-          },
-        },
-        buttons: [
-          {
-            title: "결과 보기",
-            link: {
-              mobileWebUrl: shareUrl,
-              webUrl: shareUrl,
-            },
-          },
-        ],
-      });
-    } catch {
-      // 예외 시에도 안전하게 링크 복사
-      await onCopyLink();
-    }
+    // 공유 미지원이면 메시지 복사로 폴백
+    await copy(message);
+    alert("이 기기에서는 공유 기능이 없어 메시지를 복사했어요. 카톡에 붙여넣기 해주세요.");
   }
 
   return (
-    <div className="mt-6 grid grid-cols-2 gap-3">
-      <button
-        type="button"
-        onClick={onShareKakao}
-        className="h-12 rounded-xl bg-[#FEE500] text-black font-semibold"
-      >
-        카카오로 공유
-      </button>
+    <section className="mt-5">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div className="text-xs text-white/60 mb-2">
+          인스타/카톡은 ‘캡션 복사’ → 붙여넣기가 가장 빠릅니다.
+        </div>
 
-      <button
-        type="button"
-        onClick={onCopyLink}
-        className="h-12 rounded-xl border border-white/20 bg-white/5 text-white font-semibold"
-      >
-        {copied ? "복사됨!" : "링크 복사"}
-      </button>
-    </div>
+        <div className="flex gap-3">
+          <button
+            onClick={onShare}
+            className="flex-1 rounded-xl bg-white text-black py-3 font-semibold"
+          >
+            공유하기
+          </button>
+
+          <button
+            onClick={onCopyCaption}
+            className="flex-1 rounded-xl border border-white/20 py-3 font-semibold"
+          >
+            {copied ? "캡션 복사됨 ✅" : "캡션 복사"}
+          </button>
+        </div>
+
+        <button
+          onClick={onCopyLink}
+          className="mt-3 w-full rounded-xl border border-white/20 py-3 font-semibold"
+        >
+          링크 복사
+        </button>
+
+        <p className="mt-3 text-xs text-white/60">
+          링크를 공유하면 상대방에게 미리보기 카드(OG 이미지)가 표시됩니다.
+        </p>
+
+        {/* 디버그 (문제 해결되면 지워도 됨) */}
+        {/* <pre className="mt-2 text-[10px] text-white/40">{JSON.stringify({ id, uuid, shareUrl }, null, 2)}</pre> */}
+      </div>
+    </section>
   );
 }
