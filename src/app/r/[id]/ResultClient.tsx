@@ -142,7 +142,7 @@ export default function ResultClient({
     console.log("원본 ID:", id);
     console.log("추출된 UUID:", uuid);
     console.log("생성된 URL:", shareUrl);
-    console.log("최종 메시지:", message);
+    console.log("최종 메시지:\n", message);
     console.log("==================");
 
     const success = await copyToClipboard(message);

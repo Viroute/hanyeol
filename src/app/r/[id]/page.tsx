@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import ResultClient from "./ResultClient";
-import { PROFILES, getProfile } from "@/lib/types";
+import { PROFILES } from "@/lib/profiles";
 import QuadrantMap from "./QuadrantMap";
 
 type PageProps = {
@@ -23,7 +23,7 @@ export default async function Page({ params }: PageProps) {
 
   if (error || !data) return notFound();
 
-  const profile = getProfile(data.type_code);
+  const profile = (PROFILES as any)[data.type_code] || (PROFILES as any)["HD"];
 
   return (
     <main className="min-h-screen p-6 max-w-md mx-auto bg-gradient-to-b from-gray-50 to-white">
@@ -77,7 +77,7 @@ export default async function Page({ params }: PageProps) {
         </div>
       </div>
 
-      {/* 공유 컴포넌트 */}
+      {/* 공유 컴포넌트 - title 간소화 */}
       <ResultClient
         id={data.id}
         title={`나는 ${profile.nameKo}`}
