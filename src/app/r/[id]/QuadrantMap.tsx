@@ -1,90 +1,116 @@
-type Props = {
-  ch: number; // -10 ~ +10 정도를 가정 (클램프 처리함)
-  dd: number; // -10 ~ +10 정도를 가정 (클램프 처리함)
-  color?: string;
-};
+"use client";
 
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
-}
+import { useMemo } from "react";
+import type { Quadrant } from "@/lib/types";
 
-// -10..+10 -> 0..100%
-function toPct(v: number) {
-  const x = clamp(v, -10, 10);
-  return ((x + 10) / 20) * 100;
-}
+export default function QuadrantMap({
+  ch,
+  dd,
+  typeCode,
+}: {
+  ch: number;
+  dd: number;
+  typeCode: Quadrant;
+}) {
+  // 좌표를 -12~+12 범위로 정규화 (각 축 최대 3문항 × 4점 = 12)
+  const normalizedCH = Math.max(-12, Math.min(12, ch));
+  const normalizedDD = Math.max(-12, Math.min(12, dd));
 
-export default function QuadrantMap({ ch, dd, color = "#111827" }: Props) {
-  const x = toPct(ch);          // 한(-) -> 좌 / 열(+) -> 우
-  const y = 100 - toPct(dd);    // 조(-) -> 상 / 습(+) -> 하 (화면 좌표계 반전)
+  // SVG 좌표로 변환 (중심 150, 범위 ±100)
+  const x = 150 + (normalizedCH / 12) * 100;
+  const y = 150 - (normalizedDD / 12) * 100; // Y축 반전
+
+  const quadrantColors: Record<Quadrant, string> = {
+    HD: "#E25822", // 불꽃 오렌지
+    HH: "#1F8A4C", // 딥그린
+    CH: "#4A90E2", // 쿨 블루
+    CD: "#B0BEC5", // 아이스 그레이
+  };
 
   return (
-    <div className="mt-4 rounded-2xl border p-4">
-      <div className="flex items-end justify-between">
-        <div>
-          <div className="text-xs text-gray-500">내 몸 지도</div>
-          <div className="text-sm font-semibold">한열(좌↔우) × 조습(상↔하)</div>
-        </div>
-        <div className="text-xs text-gray-500">
-          CH {ch >= 0 ? "+" : ""}{ch} / DD {dd >= 0 ? "+" : ""}{dd}
-        </div>
-      </div>
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="text-xs text-gray-500 mb-3 font-semibold">한열조습 좌표</div>
+      
+      <svg
+        viewBox="0 0 300 300"
+        className="w-full"
+        style={{ maxWidth: "400px", margin: "0 auto", display: "block" }}
+      >
+        {/* 배경 사분면 */}
+        <rect x="150" y="0" width="150" height="150" fill="#ffe5d9" opacity="0.3" />
+        <rect x="150" y="150" width="150" height="150" fill="#d9f0e3" opacity="0.3" />
+        <rect x="0" y="150" width="150" height="150" fill="#d9e8f7" opacity="0.3" />
+        <rect x="0" y="0" width="150" height="150" fill="#e8ebf0" opacity="0.3" />
 
-      <div className="relative mt-3 aspect-square w-full overflow-hidden rounded-xl bg-white">
-        {/* 격자 */}
-        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
-          <div className="border-r border-b bg-gray-50" />
-          <div className="border-b bg-gray-50" />
-          <div className="border-r bg-gray-50" />
-          <div className="bg-gray-50" />
-        </div>
+        {/* 축 */}
+        <line
+          x1="150"
+          y1="0"
+          x2="150"
+          y2="300"
+          stroke="#ddd"
+          strokeWidth="2"
+        />
+        <line
+          x1="0"
+          y1="150"
+          x2="300"
+          y2="150"
+          stroke="#ddd"
+          strokeWidth="2"
+        />
 
         {/* 축 라벨 */}
-        <div className="absolute left-3 top-3 text-xs text-gray-500">조(건조)</div>
-        <div className="absolute left-3 bottom-3 text-xs text-gray-500">습(습함)</div>
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-          한(차가움) ←
-        </div>
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-          → 열(뜨거움)
-        </div>
+        <text x="275" y="155" fontSize="12" fill="#666" textAnchor="end">
+          열
+        </text>
+        <text x="25" y="155" fontSize="12" fill="#666" textAnchor="start">
+          한
+        </text>
+        <text x="155" y="20" fontSize="12" fill="#666" textAnchor="start">
+          조
+        </text>
+        <text x="155" y="290" fontSize="12" fill="#666" textAnchor="start">
+          습
+        </text>
 
-        {/* 현재 위치 점 */}
-        <div
-          className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full shadow"
-          style={{
-            left: `${x}%`,
-            top: `${y}%`,
-            backgroundColor: color,
-          }}
-          title={`CH ${ch}, DD ${dd}`}
+        {/* 사용자 포인트 */}
+        <circle
+          cx={x}
+          cy={y}
+          r="8"
+          fill={quadrantColors[typeCode]}
+          stroke="white"
+          strokeWidth="3"
         />
+        
+        {/* 포인트 펄스 애니메이션 */}
+        <circle
+          cx={x}
+          cy={y}
+          r="8"
+          fill={quadrantColors[typeCode]}
+          opacity="0.4"
+        >
+          <animate
+            attributeName="r"
+            from="8"
+            to="20"
+            dur="1.5s"
+            repeatCount="indefinite"
+          />
+          <animate
+            attributeName="opacity"
+            from="0.4"
+            to="0"
+            dur="1.5s"
+            repeatCount="indefinite"
+          />
+        </circle>
+      </svg>
 
-        {/* 중심점 */}
-        <div
-          className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gray-300"
-          style={{ left: "50%", top: "50%" }}
-          title="중심(0,0)"
-        />
-      </div>
-
-      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-600">
-        <div className="rounded-lg bg-gray-50 p-2">
-          <div className="font-semibold">❄️🌬 한·조</div>
-          <div>시베리아 고원형</div>
-        </div>
-        <div className="rounded-lg bg-gray-50 p-2">
-          <div className="font-semibold">🔥🌵 열·조</div>
-          <div>불꽃 사막형</div>
-        </div>
-        <div className="rounded-lg bg-gray-50 p-2">
-          <div className="font-semibold">❄️💧 한·습</div>
-          <div>북극 늪지형</div>
-        </div>
-        <div className="rounded-lg bg-gray-50 p-2">
-          <div className="font-semibold">🔥🌴 열·습</div>
-          <div>열대 정글형</div>
-        </div>
+      <div className="mt-4 text-center text-xs text-gray-500">
+        한열: {ch > 0 ? "+" : ""}{ch} / 조습: {dd > 0 ? "+" : ""}{dd}
       </div>
     </div>
   );
