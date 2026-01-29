@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { ImageResponse } from "next/og";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { PROFILES } from "@/lib/profiles";
+import { PROFILES } from "@/lib/types";
 
 export const runtime = "edge";
 export const alt = "한열조습 좌표 테스트";
