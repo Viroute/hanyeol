@@ -197,7 +197,8 @@ export default function ResultClient({
   }
 
   const canUseNativeShare = typeof window !== 'undefined' && 
-    navigator.share && 
+    typeof navigator !== 'undefined' &&
+    typeof navigator.share !== 'undefined' && 
     isMobile();
 
   return (
