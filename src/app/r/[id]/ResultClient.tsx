@@ -112,15 +112,10 @@ export default function ResultClient({
     return `${origin}/r/${uuid}`;
   }, [uuid]);
 
-  // 3. 캡션 조립 - title과 mission 중복 제거
+  // 3. 캡션 조립 - 새로운 형식
   const rawCaption = useMemo(() => {
-    const parts = [
-      title?.trim(),
-      mission ? `오늘 미션: "${mission}"` : "",
-      hashtagText?.trim(),
-    ].filter(Boolean);
-    return parts.join("\n");
-  }, [title, mission, hashtagText]);
+    return `내 몸 타입은 ${title}.\n생각보다 나를 너무 잘 맞춰서 소름…`;
+  }, [title]);
 
   // 4. 캡션에서 모든 링크/도메인 제거
   const cleanCaption = useMemo(() => stripLinks(rawCaption), [rawCaption]);
@@ -207,7 +202,7 @@ export default function ResultClient({
         <div className="text-sm text-gray-600 mb-3">
           {canUseNativeShare 
             ? "친구들에게 공유해보세요!" 
-            : "링크를 복사해서 친구들에게 공유해보세요!"}
+            : "링크를 공유해서 친구들과 비교해보세요!"}
         </div>
 
         <div className="space-y-2">
@@ -225,7 +220,7 @@ export default function ResultClient({
               onClick={handleCopy}
               className="w-full rounded-xl bg-black text-white py-3.5 font-semibold hover:bg-gray-800 transition-colors"
             >
-              {copied ? "✅ 복사 완료!" : "📋 링크 복사"}
+              {copied ? "✅ 복사 완료!" : "🔗 공유하기"}
             </button>
           )}
 
