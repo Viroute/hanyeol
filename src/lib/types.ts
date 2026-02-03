@@ -13,6 +13,7 @@ export type ResultProfile = {
 export const PROFILES = {
   // 🔥🌵 불꽃 사막형 (열 + 조)
   HD: {
+    code: "HD",
     nameKo: "불꽃 사막형",
     nameEn: "Fire Desert",
     emoji: "🔥🌵",
@@ -26,7 +27,8 @@ export const PROFILES = {
   },
 
   // 🔥🌴 열대 정글형 (열 + 습)
-  HS: {
+  HH: {
+    code: "HH",
     nameKo: "열대 정글형",
     nameEn: "Tropical Jungle",
     emoji: "🔥🌴",
@@ -40,7 +42,8 @@ export const PROFILES = {
   },
 
   // ❄️💧 북극 늪지형 (한 + 습)
-  CS: {
+  CH: {
+    code: "CH",
     nameKo: "북극 늪지형",
     nameEn: "Arctic Swamp",
     emoji: "❄️💧",
@@ -55,6 +58,7 @@ export const PROFILES = {
 
   // ❄️🌬 시베리아 고원형 (한 + 조)
   CD: {
+    code: "CD",
     nameKo: "시베리아 고원형",
     nameEn: "Siberian Plateau",
     emoji: "❄️🌬",
@@ -66,5 +70,4 @@ export const PROFILES = {
       "따뜻함과 충분한 휴식으로 기반을 채우세요",
     color: "#B0BEC5", // 아이스 그레이
   },
-  
 } as const;
