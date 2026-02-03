@@ -77,6 +77,17 @@ export default async function Page({ params }: PageProps) {
         <QuadrantMap ch={data.ch} dd={data.dd} typeCode={data.type_code} />
       </div>
 
+    {/* AI 분석 섹션 추가 (좌표 맵 아래) */}
+    <div className="mb-8">
+      <AIAnalysis
+        surveyId={data.id}
+        typeCode={data.type_code}
+        ch={data.ch}
+        dd={data.dd}
+        answers={data.answers}
+      />
+    </div>
+    
       {/* 공유 컴포넌트 */}
       <ResultClient
         id={data.id}
