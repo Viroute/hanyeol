@@ -40,7 +40,7 @@ export default function ShortSurveyPage() {
       {/* 헤더 */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">60초 체질 테스트</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">체질 테스트</h1>
           <div className="text-sm text-gray-600 dark:text-gray-400">{progress}%</div>
         </div>
         
@@ -135,7 +135,7 @@ export default function ShortSurveyPage() {
 
       {/* 하단 안내 */}
       <div className="mt-8 text-center text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-        💡 최근 3개월 기준으로 답변하면 정확도가 높아집니다
+        💡 편안한 마음으로 최근 3개월을 떠올리며 답변해주세요
       </div>
     </main>
   );

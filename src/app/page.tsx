@@ -27,7 +27,7 @@ export default function Home() {
             <div className="rounded-2xl bg-white dark:bg-gray-900 p-8">
               {/* 배지 */}
               <div className="inline-block px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-semibold mb-4">
-                ⚡ 1분 완성
+                ⚡ 2분 완성
               </div>
               
               <div className="flex items-center justify-between mb-3">
@@ -40,7 +40,7 @@ export default function Home() {
               </div>
               
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                12문항 · 무료 · 공유 최적화
+                32문항 · 무료 · 공유 최적화
               </p>
               
               {/* 특징 */}
