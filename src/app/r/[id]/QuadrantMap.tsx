@@ -1,6 +1,9 @@
+import type { Quadrant } from "@/lib/types";
+
 type Props = {
   ch: number; // -10 ~ +10 정도를 가정 (클램프 처리함)
   dd: number; // -10 ~ +10 정도를 가정 (클램프 처리함)
+  typeCode: Quadrant;
   color?: string;
 };
 
@@ -14,7 +17,7 @@ function toPct(v: number) {
   return ((x + 10) / 20) * 100;
 }
 
-export default function QuadrantMap({ ch, dd, color = "#111827" }: Props) {
+export default function QuadrantMap({ ch, dd, typeCode, color = "#111827" }: Props) {
   const x = toPct(ch);          // 한(-) -> 좌 / 열(+) -> 우
   const y = 100 - toPct(dd);    // 조(-) -> 상 / 습(+) -> 하 (화면 좌표계 반전)
 
