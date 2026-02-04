@@ -123,8 +123,8 @@ export default async function Page({ params }: PageProps) {
           >
             www.cheongsuyeon.com
           </a>
+          </div>
         </div>
-      </div>
       </div>
     </main>
   );
