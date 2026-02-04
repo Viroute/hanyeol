@@ -142,7 +142,7 @@ export default function ResultClient({
           {/* 카카오톡 공유 */}
           <button
             onClick={onKakaoShare}
-            className="w-full rounded-xl bg-[#FEE500] hover:bg-[#FFE812] text-black py-3.5 font-semibold flex items-center justify-center gap-2 transition-colors"
+            className="hidden w-full rounded-xl bg-[#FEE500] hover:bg-[#FFE812] text-black py-3.5 font-semibold flex items-center justify-center gap-2 transition-colors"
           >
             <span className="text-xl">💬</span>
             카카오톡으로 공유하기
