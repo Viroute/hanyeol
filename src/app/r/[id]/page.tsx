@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import ResultClient from "./ResultClient";
 import { PROFILES } from "@/lib/types";
@@ -10,6 +11,54 @@ import CTAButtons from "./CTAButtons";
 type PageProps = {
   params: { id: string } | Promise<{ id: string }>;
 };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const resolved = await Promise.resolve(params as any);
+  const id = resolved?.id;
+
+  if (!id) {
+    return {
+      title: "한열조습 체질 테스트",
+      description: "32문항으로 1분만에 알아보는 나만의 몸 타입 리포트",
+    };
+  }
+
+  const sb = supabaseAdmin();
+  const { data } = await sb
+    .from("surveys")
+    .select("id,type_code,ch,dd")
+    .eq("id", id)
+    .single();
+
+  const typeCode = (data?.type_code as string) || "HD";
+  const profile = (PROFILES as any)[typeCode] || (PROFILES as any)["HD"];
+  const title = `${profile.nameKo} - 한열조습 체질 테스트`;
+  const description = profile.definition || "내 몸 타입을 좌표로 확인해보세요.";
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      images: [
+        {
+          url: `/r/${id}/opengraph-image`,
+          width: 1200,
+          height: 630,
+          alt: `${profile.nameKo} 결과 이미지`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [`/r/${id}/opengraph-image`],
+    },
+  };
+}
 
 export default async function Page({ params }: PageProps) {
   const resolved = await Promise.resolve(params as any);
