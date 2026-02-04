@@ -13,8 +13,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });
     }
 
-    // Gemini 2.0 Flash 모델
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    // Gemini 2.0 Flash 모델 (안정 버전)
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash"  // 안정적인 모델로 변경
+    });
 
     // 프롬프트 생성
     const prompt = generatePrompt(answers, typeCode, ch, dd);
@@ -53,7 +55,7 @@ function generatePrompt(answers: Record<string, number>, typeCode: string, ch: n
   return `당신은 한의학 전문가이자 체질 분석 전문가입니다.
 
 # 사용자 체질 정보
-- 체질 유형: ${typeInfo[typeCode]}
+- 체질 유형: ${typeInfo[typeCode] || "알 수 없음"}
 - 한열 지수 (CH): ${ch} ${ch > 0 ? "(열 경향)" : ch < 0 ? "(한 경향)" : "(중립)"}
 - 조습 지수 (DD): ${dd} ${dd > 0 ? "(습 경향)" : dd < 0 ? "(조 경향)" : "(중립)"}
 
