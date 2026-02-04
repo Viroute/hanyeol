@@ -13,9 +13,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });
     }
 
-    // Gemini 2.0 Flash 모델 (안정 버전)
+    // Gemini Pro 모델 (가장 안정적)
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash"  // 안정적인 모델로 변경
+      model: "gemini-pro"
     });
 
     // 프롬프트 생성
