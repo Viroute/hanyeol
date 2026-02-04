@@ -38,6 +38,17 @@ export default async function Page({ params }: PageProps) {
         <div className="text-sm text-gray-600 dark:text-gray-400">{profile.nameEn}</div>
       </div>
 
+    {/* AI 분석 섹션 추가 (헤더 아래) */}
+    <div className="mb-8">
+      <AIAnalysis
+        surveyId={data.id}
+        typeCode={data.type_code}
+        ch={data.ch}
+        dd={data.dd}
+        answers={data.answers}
+      />
+    </div>
+
       {/* 프로필 카드 (순서 변경: 위로) */}
       <div className="space-y-4 mb-8">
         {/* 설명 */}
@@ -78,16 +89,6 @@ export default async function Page({ params }: PageProps) {
         <QuadrantMap ch={data.ch} dd={data.dd} typeCode={data.type_code} />
       </div>
 
-    {/* AI 분석 섹션 추가 (좌표 맵 아래) */}
-    <div className="mb-8">
-      <AIAnalysis
-        surveyId={data.id}
-        typeCode={data.type_code}
-        ch={data.ch}
-        dd={data.dd}
-        answers={data.answers}
-      />
-    </div>
     
       {/* 공유 컴포넌트 */}
       <ResultClient
