@@ -1,17 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { SHORT_QUESTIONS } from "@/lib/shortSurvey";
 
 const labels = ["전혀 아니다", "거의 없다", "보통", "자주", "거의 항상"];
 
+function shuffle<T>(items: T[], seed: number) {
+  const arr = [...items];
+  let s = seed;
+  // Simple seeded RNG (LCG) for stable shuffle per session
+  const rand = () => {
+    s = (s * 1664525 + 1013904223) % 4294967296;
+    return s / 4294967296;
+  };
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 export default function ShortSurveyPage() {
+  const [seed] = useState(() => Math.floor(Math.random() * 4294967296));
+  const questions = useMemo(
+    () => shuffle(SHORT_QUESTIONS, seed),
+    [seed]
+  );
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const q = SHORT_QUESTIONS[idx];
-  const progress = Math.round((idx / SHORT_QUESTIONS.length) * 100);
+  const q = questions[idx];
+  const progress = Math.round((idx / questions.length) * 100);
   const canNext = answers[q.id] !== undefined;
 
   async function handleSubmit() {
@@ -57,7 +77,7 @@ export default function ShortSurveyPage() {
       <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm mb-6">
         <div className="flex items-center justify-between mb-3">
           <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-            Q{idx + 1} / {SHORT_QUESTIONS.length}
+            Q{idx + 1} / {questions.length}
           </div>
           <div className="text-xs text-gray-400 dark:text-gray-500">
             {q.axis === "C" ? "한(寒)" : 
@@ -114,7 +134,7 @@ export default function ShortSurveyPage() {
           ← 이전
         </button>
 
-        {idx < SHORT_QUESTIONS.length - 1 ? (
+        {idx < questions.length - 1 ? (
           <button
             className="flex-1 rounded-xl bg-blue-500 dark:bg-blue-600 text-white py-3.5 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
             disabled={!canNext}
