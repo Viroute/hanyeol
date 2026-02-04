@@ -5,6 +5,7 @@ import { PROFILES } from "@/lib/types";
 import QuadrantMap from "./QuadrantMap";
 import AIAnalysis from "./AIAnalysis";
 import TypeStats from "./TypeStats";
+import CTAButtons from "./CTAButtons";
 
 type PageProps = {
   params: { id: string } | Promise<{ id: string }>;
@@ -39,19 +40,10 @@ export default async function Page({ params }: PageProps) {
         <div className="text-sm text-gray-600 dark:text-gray-400">{profile.nameEn}</div>
       </div>
 
-    {/* AI 분석 섹션 추가 (헤더 아래) */}
-    <div className="mb-8">
+      {/* 통계 */}
       <TypeStats typeCode={data.type_code} />
-      <AIAnalysis
-        surveyId={data.id}
-        typeCode={data.type_code}
-        ch={data.ch}
-        dd={data.dd}
-        answers={data.answers}
-      />
-    </div>
 
-      {/* 프로필 카드 (순서 변경: 위로) */}
+      {/* 프로필 카드 (위로 이동!) */}
       <div className="space-y-4 mb-8">
         {/* 설명 */}
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 shadow-sm">
@@ -86,16 +78,29 @@ export default async function Page({ params }: PageProps) {
         </div>
       </div>
 
-      {/* 좌표 맵 (순서 변경: 아래로) */}
+      {/* AI 분석 (프로필 카드 아래로!) */}
+      <div className="mb-8">
+        <AIAnalysis
+          surveyId={data.id}
+          typeCode={data.type_code}
+          ch={data.ch}
+          dd={data.dd}
+          answers={data.answers}
+        />
+      </div>
+
+      {/* 좌표 맵 */}
       <div className="mb-8">
         <QuadrantMap ch={data.ch} dd={data.dd} typeCode={data.type_code} />
       </div>
 
-    
+      {/* CTA 버튼 (다시 테스트 / 내 체질 알아보기) */}
+      <CTAButtons />
+
       {/* 공유 컴포넌트 */}
       <ResultClient
         id={data.id}
-        title={`${profile.nameKo}`}
+        title={profile.nameKo}
         mission={profile.mission}
         hashtagText="#한열조습 #체질테스트"
       />
@@ -107,7 +112,7 @@ export default async function Page({ params }: PageProps) {
           몸의 경향을 이해하기 위한 자기점검 도구입니다.
         </div>
         
-        {/* 청수연 브랜딩 + 홈페이지 링크 */}
+        {/* 청수연 브랜딩 */}
         <div className="text-center pt-6 border-t border-gray-200 dark:border-gray-800">
           <div className="text-xs text-gray-400 dark:text-gray-600 mb-1">
             Powered by
@@ -116,15 +121,15 @@ export default async function Page({ params }: PageProps) {
             청수연 淸水淵
           </div>
           <a 
-            href="https://www.cheongsuyeon.com?utm_source=body_test&utm_medium=result_page&utm_campaign=branding"
+            href="https://www.cheongsuyeon.kr?utm_source=body_test&utm_medium=result_page&utm_campaign=branding"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block text-xs text-blue-600 dark:text-blue-400 hover:underline"
           >
-            www.cheongsuyeon.com
+            www.cheongsuyeon.kr
           </a>
-          </div>
         </div>
+      </div>
     </main>
   );
 }

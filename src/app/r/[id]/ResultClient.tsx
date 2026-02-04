@@ -13,7 +13,7 @@ function extractUuidStrict(raw: string) {
 function stripLinks(text: string) {
   return (text || "")
     .replace(/https?:\/\/\S+/gi, "")
-    .replace(/\b[a-z0-9.-]+\.(?:vercel\.app|com|net|org)(?:\/\S*)?/gi, "")
+    .replace(/\b[a-z0-9.-]+\.(?:vercel\.app|com|net|org|kr)(?:\/\S*)?/gi, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
@@ -56,7 +56,7 @@ export default function ResultClient({
     const url = new URL(`/r/${uuid}`, window.location.origin);
     url.searchParams.set('shared', 'true');
     
-    // Google Analytics 추적 파라미터 추가
+    // Google Analytics 추적
     url.searchParams.set('utm_source', 'share');
     url.searchParams.set('utm_medium', 'social');
     url.searchParams.set('utm_campaign', 'body_type_test');
@@ -72,62 +72,38 @@ export default function ResultClient({
 
   const message = useMemo(() => {
     if (!shareUrl) return cleanCaption;
-    return `${cleanCaption}\n${shareUrl}`;
+    return `${cleanCaption}\n\n${shareUrl}`;
   }, [cleanCaption, shareUrl]);
 
-  // 일반 복사
-  async function onCopy() {
-    if (!shareUrl) {
-      alert("공유 링크를 만들 수 없습니다.");
-      return;
-    }
-    await copyToClipboard(message);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
-  }
-
-  // 카카오톡 공유
-  function onKakaoShare() {
+  // 공유하기 (네이티브 공유 팝업)
+  async function handleShare() {
     if (!shareUrl) {
       alert("공유 링크를 만들 수 없습니다.");
       return;
     }
 
-    // 모바일 환경 체크
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      // 모바일: 카카오톡 앱 실행 (메시지에 링크 포함)
-      const kakaoUrl = `kakaotalk://send?text=${encodeURIComponent(message)}`;
-      window.location.href = kakaoUrl;
-      
-      // 카카오톡 앱이 없을 경우 대비 (1초 후 복사)
-      setTimeout(() => {
-        copyToClipboard(message).then(() => {
-          alert("카카오톡 앱이 없어요. 링크가 복사되었습니다!");
-        });
-      }, 1000);
-    } else {
-      // 데스크톱: 복사만
-      onCopy();
-    }
-  }
-
-  // Web Share API (모바일 네이티브 공유)
-  function onNativeShare() {
-    if (!shareUrl) return;
-    
+    // Web Share API 지원 확인 (모든 모바일 브라우저)
     if (navigator.share) {
-      navigator.share({
-        title: title,
-        text: cleanCaption,
-        url: shareUrl,
-      }).catch(() => {
-        // 취소하면 복사로 대체
-        onCopy();
-      });
+      try {
+        await navigator.share({
+          title: `한열조습 체질 테스트 - ${title}`,
+          text: cleanCaption,
+          url: shareUrl,
+        });
+      } catch (err: any) {
+        // 사용자가 취소한 경우는 무시
+        if (err.name !== 'AbortError') {
+          // 공유 실패 시 복사로 폴백
+          await copyToClipboard(message);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }
+      }
     } else {
-      onCopy();
+      // Web Share API 미지원 (데스크톱) → 복사
+      await copyToClipboard(message);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   }
 
@@ -138,24 +114,23 @@ export default function ResultClient({
           친구들에게 공유해보세요!
         </h3>
 
-        <div className="space-y-3">
-          {/* 카카오톡 공유 */}
-          <button
-            onClick={onKakaoShare}
-            className="hidden w-full rounded-xl bg-[#FEE500] hover:bg-[#FFE812] text-black py-3.5 font-semibold flex items-center justify-center gap-2 transition-colors"
-          >
-            <span className="text-xl">💬</span>
-            카카오톡으로 공유하기
-          </button>
-
-          {/* 일반 공유 (네이티브 or 복사) */}
-          <button
-            onClick={onNativeShare}
-            className="w-full rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-3.5 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            {copied ? "✅ 복사 완료!" : "🔗 공유하기"}
-          </button>
-        </div>
+        {/* 공유하기 버튼 (네이티브 팝업) */}
+        <button
+          onClick={handleShare}
+          className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white py-4 font-semibold flex items-center justify-center gap-2 transition-all shadow-lg"
+        >
+          {copied ? (
+            <>
+              <span className="text-xl">✅</span>
+              복사 완료!
+            </>
+          ) : (
+            <>
+              <span className="text-xl">📤</span>
+              공유하기
+            </>
+          )}
+        </button>
 
         {/* 미리보기 */}
         <details className="mt-4">
