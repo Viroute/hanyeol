@@ -13,9 +13,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });
     }
 
-    // 최신 Gemini Flash 모델 (2024년 12월 기준)
+    // Gemini 2.5 Flash 모델 (확인된 사용 가능 모델)
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash-latest"
+      model: "gemini-2.5-flash"
     });
 
     // 프롬프트 생성
@@ -34,17 +34,9 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Gemini API Error:", error);
     
-    // 더 자세한 에러 로깅
-    console.error("Error details:", {
-      message: error.message,
-      status: error.status,
-      statusText: error.statusText
-    });
-    
     return NextResponse.json({ 
       error: "AI 분석 실패",
-      message: error.message,
-      details: error.toString()
+      message: error.message
     }, { status: 500 });
   }
 }
