@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import ResultClient from "./ResultClient";
 import { PROFILES } from "@/lib/types";
 import QuadrantMap from "./QuadrantMap";
+import AIAnalysis from "./AIAnalysis";
 
 type PageProps = {
   params: { id: string } | Promise<{ id: string }>;
