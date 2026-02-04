@@ -26,9 +26,9 @@ export function middleware(request: NextRequest) {
   }
 
   // IP 주소 가져오기
-  const ip = 
-    request.ip || 
-    request.headers.get('x-forwarded-for')?.split(',')[0] || 
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  const ip =
+    (forwardedFor ? forwardedFor.split(',')[0].trim() : null) ||
     request.headers.get('x-real-ip') ||
     'anonymous';
 
