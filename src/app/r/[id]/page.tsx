@@ -4,6 +4,7 @@ import ResultClient from "./ResultClient";
 import { PROFILES } from "@/lib/types";
 import QuadrantMap from "./QuadrantMap";
 import AIAnalysis from "./AIAnalysis";
+import TypeStats from "./TypeStats";
 
 type PageProps = {
   params: { id: string } | Promise<{ id: string }>;
@@ -40,6 +41,7 @@ export default async function Page({ params }: PageProps) {
 
     {/* AI 분석 섹션 추가 (헤더 아래) */}
     <div className="mb-8">
+      <TypeStats typeCode={data.type_code} />
       <AIAnalysis
         surveyId={data.id}
         typeCode={data.type_code}
