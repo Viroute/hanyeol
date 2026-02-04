@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 type Props = {
   surveyId: string;
@@ -11,9 +12,17 @@ type Props = {
 };
 
 export default function AIAnalysis({ surveyId, typeCode, ch, dd, answers }: Props) {
+  const searchParams = useSearchParams();
+  const isShared = searchParams.get("shared") === "true";
+
   const [analysis, setAnalysis] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  // 공유 링크로 온 경우 AI 분석 표시 안 함
+  if (isShared) {
+    return null;
+  }
 
   useEffect(() => {
     async function fetchAnalysis() {
@@ -90,7 +99,7 @@ function formatAnalysis(text: string): string {
   return text
     // ## 헤더를 HTML로
     .replace(/^## (.+)$/gm, '<h3 class="text-lg font-bold mt-6 mb-3 text-gray-900 dark:text-gray-100">$1</h3>')
-    // ### 서브헤더 ($ 이스케이프 처리)
+    // ### 서브헤더
     .replace(/^### (.+)$/gm, (match, p1) => `<h4 class="text-base font-semibold mt-4 mb-2 text-gray-800 dark:text-gray-200">${p1}</h4>`)
     // 리스트
     .replace(/^- (.+)$/gm, '<li class="ml-4 mb-1">$1</li>')
