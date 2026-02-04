@@ -4,8 +4,6 @@ import { useMemo, useState } from "react";
 
 function extractUuidStrict(raw: string) {
   if (!raw) return null;
-
-  // 어디에 있든 UUID만 뽑기
   const m = raw.match(
     /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
   );
@@ -14,23 +12,17 @@ function extractUuidStrict(raw: string) {
 
 function stripLinks(text: string) {
   return (text || "")
-    // https://... 제거
     .replace(/https?:\/\/\S+/gi, "")
-    // 스킴 없는 도메인도 제거 (hanyeol.vercel.app/.... 등)
     .replace(/\b[a-z0-9.-]+\.(?:vercel\.app|com|net|org)(?:\/\S*)?/gi, "")
-    // 여러 줄 정리
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
 async function copyToClipboard(text: string) {
-  // 1) 표준 Clipboard API
   if (navigator.clipboard && window.isSecureContext) {
     await navigator.clipboard.writeText(text);
     return;
   }
-
-  // 2) 폴백 (일부 환경/권한 문제 대비)
   const ta = document.createElement("textarea");
   ta.value = text;
   ta.style.position = "fixed";
@@ -56,40 +48,37 @@ export default function ResultClient({
 }) {
   const [copied, setCopied] = useState(false);
 
-  // UUID만 “엄격하게” 추출 (실패하면 null)
   const uuid = useMemo(() => extractUuidStrict(id), [id]);
 
-  // URL은 정식 URL 생성기로 생성 (중복/오염 방지)
-  // 공유 링크에는 shared=true 추가 (AI 분석 숨김)
+  // 공유 URL (shared=true 포함)
   const shareUrl = useMemo(() => {
     if (!uuid) return null;
     const url = new URL(`/r/${uuid}`, window.location.origin);
     url.searchParams.set('shared', 'true');
+    
+    // Google Analytics 추적 파라미터 추가
+    url.searchParams.set('utm_source', 'share');
+    url.searchParams.set('utm_medium', 'social');
+    url.searchParams.set('utm_campaign', 'body_type_test');
+    
     return url.toString();
   }, [uuid]);
 
-  // 캡션 조립: title + mission + hashtags
   const rawCaption = useMemo(() => {
-    const parts = [
-      title?.trim(),
-      mission ? `오늘 미션: ${mission}` : "",
-      hashtagText?.trim(),
-    ].filter(Boolean);
-    return parts.join("\n");
-  }, [title, mission, hashtagText]);
+    return `내 몸 타입은 ${title}.\n생각보다 나를 너무 잘 맞춰서 소름…`;
+  }, [title]);
 
-  // caption 안에 링크가 섞여 있으면 제거 (중복 방지)
   const cleanCaption = useMemo(() => stripLinks(rawCaption), [rawCaption]);
 
-  // 최종 복사 텍스트: “캡션 + 링크(1회)”
   const message = useMemo(() => {
     if (!shareUrl) return cleanCaption;
     return `${cleanCaption}\n${shareUrl}`;
   }, [cleanCaption, shareUrl]);
 
+  // 일반 복사
   async function onCopy() {
     if (!shareUrl) {
-      alert("공유 링크를 만들 수 없습니다. (id가 UUID가 아닙니다)");
+      alert("공유 링크를 만들 수 없습니다.");
       return;
     }
     await copyToClipboard(message);
@@ -97,22 +86,86 @@ export default function ResultClient({
     setTimeout(() => setCopied(false), 1200);
   }
 
+  // 카카오톡 공유
+  function onKakaoShare() {
+    if (!shareUrl) {
+      alert("공유 링크를 만들 수 없습니다.");
+      return;
+    }
+
+    // 모바일 환경 체크
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // 모바일: 카카오톡 앱 실행 (메시지에 링크 포함)
+      const kakaoUrl = `kakaotalk://send?text=${encodeURIComponent(message)}`;
+      window.location.href = kakaoUrl;
+      
+      // 카카오톡 앱이 없을 경우 대비 (1초 후 복사)
+      setTimeout(() => {
+        copyToClipboard(message).then(() => {
+          alert("카카오톡 앱이 없어요. 링크가 복사되었습니다!");
+        });
+      }, 1000);
+    } else {
+      // 데스크톱: 복사만
+      onCopy();
+    }
+  }
+
+  // Web Share API (모바일 네이티브 공유)
+  function onNativeShare() {
+    if (!shareUrl) return;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: title,
+        text: cleanCaption,
+        url: shareUrl,
+      }).catch(() => {
+        // 취소하면 복사로 대체
+        onCopy();
+      });
+    } else {
+      onCopy();
+    }
+  }
+
   return (
-    <section className="mt-5">
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-        <div className="text-xs text-white/60 mb-2">
-          MVP: 링크 복사만 제공합니다. (캡션+링크가 함께 복사됩니다)
+    <section className="mt-8">
+      <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          친구들에게 공유해보세요!
+        </h3>
+
+        <div className="space-y-3">
+          {/* 카카오톡 공유 */}
+          <button
+            onClick={onKakaoShare}
+            className="w-full rounded-xl bg-[#FEE500] hover:bg-[#FFE812] text-black py-3.5 font-semibold flex items-center justify-center gap-2 transition-colors"
+          >
+            <span className="text-xl">💬</span>
+            카카오톡으로 공유하기
+          </button>
+
+          {/* 일반 공유 (네이티브 or 복사) */}
+          <button
+            onClick={onNativeShare}
+            className="w-full rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 py-3.5 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            {copied ? "✅ 복사 완료!" : "🔗 공유하기"}
+          </button>
         </div>
 
-        <button
-          onClick={onCopy}
-          className="w-full rounded-xl bg-white text-black py-3 font-semibold"
-        >
-          {copied ? "복사됨 ✅" : "링크 복사 (캡션+링크)"}
-        </button>
-
-        {/* 필요하면 디버그 잠깐 켜서 확인 가능 */}
-        {/* <pre className="mt-3 text-[10px] text-white/50">{JSON.stringify({ id, uuid, shareUrl }, null, 2)}</pre> */}
+        {/* 미리보기 */}
+        <details className="mt-4">
+          <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
+            📋 공유될 내용 미리보기
+          </summary>
+          <pre className="mt-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+            {message}
+          </pre>
+        </details>
       </div>
     </section>
   );

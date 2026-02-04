@@ -107,18 +107,24 @@ export default async function Page({ params }: PageProps) {
           몸의 경향을 이해하기 위한 자기점검 도구입니다.
         </div>
         
-        {/* 청수연 브랜딩 */}
+        {/* 청수연 브랜딩 + 홈페이지 링크 */}
         <div className="text-center pt-6 border-t border-gray-200 dark:border-gray-800">
           <div className="text-xs text-gray-400 dark:text-gray-600 mb-1">
             Powered by
           </div>
-          <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+          <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             청수연 淸水淵
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-500 italic">
-            조화와 균형
-          </div>
+          <a 
+            href="https://www.cheongsuyeon.com?utm_source=body_test&utm_medium=result_page&utm_campaign=branding"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block text-xs text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            www.cheongsuyeon.com
+          </a>
         </div>
+      </div>
       </div>
     </main>
   );
