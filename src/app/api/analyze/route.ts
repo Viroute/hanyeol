@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { SHORT_QUESTIONS } from "@/lib/shortSurvey";
 
 // Gemini API 초기화
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -52,13 +53,15 @@ function generatePrompt(answers: Record<string, number>, typeCode: string, ch: n
 
   // 답변 분석
   const answerSummary = analyzeAnswers(answers);
+  const chLabel = strengthLabel(ch, "ch");
+  const ddLabel = strengthLabel(dd, "dd");
 
   return `당신은 한의학 전문가이자 체질 분석 전문가입니다.
 
 # 사용자 체질 정보
 - 체질 유형: ${typeInfo[typeCode] || "알 수 없음"}
-- 한열 지수 (CH): ${ch} ${ch > 0 ? "(열 경향)" : ch < 0 ? "(한 경향)" : "(중립)"}
-- 조습 지수 (DD): ${dd} ${dd > 0 ? "(습 경향)" : dd < 0 ? "(조 경향)" : "(중립)"}
+- 한열 지수 (CH): ${ch} (${chLabel})
+- 조습 지수 (DD): ${dd} (${ddLabel})
 
 # 사용자 답변 패턴
 ${answerSummary}
@@ -110,10 +113,11 @@ ${answerSummary}
 
 function analyzeAnswers(answers: Record<string, number>): string {
   const summary: string[] = [];
+  const questionText = new Map(SHORT_QUESTIONS.map((q) => [q.id, q.text]));
   
   // 한(Cold) 분석
   const coldScores = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8']
-    .map(id => ({ id, score: answers[id] || 0 }))
+    .map(id => ({ id, score: answers[id] || 0, axis: "C" }))
     .filter(a => a.score >= 3);
   
   if (coldScores.length >= 3) {
@@ -122,7 +126,7 @@ function analyzeAnswers(answers: Record<string, number>): string {
 
   // 열(Heat) 분석
   const heatScores = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7', 'H8']
-    .map(id => ({ id, score: answers[id] || 0 }))
+    .map(id => ({ id, score: answers[id] || 0, axis: "H" }))
     .filter(a => a.score >= 3);
   
   if (heatScores.length >= 3) {
@@ -131,7 +135,7 @@ function analyzeAnswers(answers: Record<string, number>): string {
 
   // 조(Dry) 분석
   const dryScores = ['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8']
-    .map(id => ({ id, score: answers[id] || 0 }))
+    .map(id => ({ id, score: answers[id] || 0, axis: "D" }))
     .filter(a => a.score >= 3);
   
   if (dryScores.length >= 3) {
@@ -140,12 +144,44 @@ function analyzeAnswers(answers: Record<string, number>): string {
 
   // 습(Damp) 분석
   const dampScores = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8']
-    .map(id => ({ id, score: answers[id] || 0 }))
+    .map(id => ({ id, score: answers[id] || 0, axis: "W" }))
     .filter(a => a.score >= 3);
   
   if (dampScores.length >= 3) {
     summary.push(`- 몸이 무겁고 부종 경향 (습 체질 특징)`);
   }
 
+  // 상위 반응 문항(특히 건조/습 위주)
+  const topDryDamp = [...dryScores, ...dampScores]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map(a => `${a.id}(${a.score}): ${questionText.get(a.id) || ""}`);
+
+  if (topDryDamp.length > 0) {
+    summary.push(`- 건조/습 관련 강한 반응 문항: ${topDryDamp.join(" / ")}`);
+  } else {
+    const topItems = [...coldScores, ...heatScores]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map(a => `${a.id}(${a.score}): ${questionText.get(a.id) || ""}`);
+    if (topItems.length > 0) {
+      summary.push(`- 강하게 반응한 문항: ${topItems.join(" / ")}`);
+    }
+  }
+
   return summary.length > 0 ? summary.join('\n') : '- 균형잡힌 답변 패턴';
+}
+
+function strengthLabel(value: number, axis: "ch" | "dd") {
+  if (value === 0) return "중립";
+  const abs = Math.abs(value);
+  const direction =
+    axis === "ch"
+      ? value > 0 ? "열 경향" : "한 경향"
+      : value > 0 ? "습 경향" : "조 경향";
+
+  if (abs >= 17) return `${direction}이 매우 강함`;
+  if (abs >= 11) return `${direction}이 강함`;
+  if (abs >= 6) return `${direction}이 약간 강함`;
+  return direction;
 }
